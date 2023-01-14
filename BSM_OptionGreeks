@@ -1,0 +1,66 @@
+from scipy.stats import norm
+import numpy as np
+
+class Option:
+    def __init__(self, Type, S, K, V, T, R):
+        self.Type = Type
+        self.S = S
+        self.K = K
+        self.V = V
+        self.T = T
+        self.R = R
+
+        # Price
+        self.d1 = self.get_d1()
+        self.d2 = self.get_d2()
+        self.Price = self.get_BSMprice()
+
+        # First Order Greeks
+        self.Delta = self.get_Delta()
+        self.Vega = self.get_Vega()
+        self.Theta = self.get_Theta()
+        self.Rho = self.get_Rho()
+
+        # Second Order Greeks
+        self.Gamma = self.get_Gamma()
+        self.Vanna = self.get_Vanna()
+        self.Volga = self.get_Volga()
+
+    def get_BSMprice(self):
+        if self.Type == "call": return self.S * norm.cdf(self.d1) - np.exp(-self.R * self.T) * self.K * norm.cdf(self.d2)
+        if self.Type == "put": return np.exp(-self.R * self.T) * self.K * norm.cdf(-self.d2) - self.S * norm.cdf(-self.d1)
+
+    def get_d1(self):
+        return (np.log(self.S/self.K)+(self.R + 1/2 * self.V**2) * self.T) / (self.V * np.sqrt(self.T))
+
+    def get_d2(self):
+        return self.d1 - self.V * np.sqrt(self.T)
+
+    def get_Delta(self):
+        if self.Type == "call": return norm.cdf(self.d1)
+        if self.Type == "put": return norm.cdf(-self.d1)
+
+    def get_Vega(self):
+        return self.S * norm.cdf(self.d1) * np.sqrt(self.T)
+
+    def get_Theta(self):
+        if self.Type == "call": return -self.S * norm.cdf(self.d1) * self.V / (2 * np.sqrt(self.T)) - self.R * self.K * np.exp(-self.R * self.T) * norm.cdf(self.d2)
+        if self.Type == "put": return -self.S * norm.cdf(self.d1) * self.V / (2 * np.sqrt(self.T)) + self.R * self.K * np.exp(-self.R * self.T) * norm.cdf(-self.d2)
+
+    def get_Rho(self):
+        if self.Type == "call": return self.K * self.T * np.exp(-self.R * self.T) * norm.cdf(self.d2)
+        if self.Type == "put": return - self.K * self.T * np.exp(-self.R * self.T) * norm.cdf(- self.d2)
+
+    def get_Gamma(self):
+        return self.K * np.exp(- self.R * self.T) * norm.cdf(self.d2) / (self.S**2 * self.V * np.sqrt(self.T))
+
+    def get_Vanna(self):
+        return norm.cdf(self.d1) * self.d2 / self.V
+
+    def get_Volga(self):
+        return self.T * norm.cdf(self.d1) * (self.d1 * self.d2 / self.V)
+
+# Example
+Option1 = Option('put',S=120,K=100,V=0.1,T=1,R=0.1)
+Price1 = Option1.Price
+Gamma1 = Option1.Gamma
